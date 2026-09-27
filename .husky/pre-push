@@ -1,3 +1,3 @@
+# 推送前只做格式检查，保持本地推送轻快；
+# lint 与全量测试由 CI（.github/workflows/pull-request.yml）把关。
 pnpm -C apps/readest-app format:check
-pnpm -C apps/readest-app lint
-pnpm -C apps/readest-app test
