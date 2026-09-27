@@ -39,6 +39,33 @@ if (typeof globalWithCSS.CSS.escape !== 'function') {
   };
 }
 
+// Node ≥26 在全局预置了实验性的 localStorage 访问器，未开启
+// --experimental-webstorage 时恒返回 undefined；该不可枚举属性会遮蔽
+// vitest jsdom 环境拷贝到全局的同名属性（Node 24 无此访问器，不受影响）。
+// 检测到 localStorage 不可用时，用隐藏 jsdom 实例的原生 Storage 顶上——
+// 必须是真正的 Storage 实例：StorageEvent 的 storageArea 字段会做 IDL
+// 类型校验，普通对象实现过不了。已可用的环境（Node 24 CI）守卫直接跳过。
+import { JSDOM } from 'jsdom';
+
+let storageUsable = false;
+try {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('__readest_vitest_probe__', '1');
+    localStorage.removeItem('__readest_vitest_probe__');
+    storageUsable = true;
+  }
+} catch {
+  storageUsable = false;
+}
+if (!storageUsable) {
+  const storageWindow = new JSDOM('', { url: 'http://localhost/' }).window;
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: storageWindow.localStorage,
+    configurable: true,
+    writable: true,
+  });
+}
+
 // matchMedia mock
 if (typeof window !== 'undefined' && !window.matchMedia) {
   window.matchMedia = (query: string) =>
